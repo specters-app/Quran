@@ -4,10 +4,21 @@ import requests
 from pathlib import Path
 from subprocess import run, CalledProcessError
 
-TOTAL = 114
-AUDIO_URL_TMPL = "https://server6.mp3quran.net/download/abkr/{num}.mp3"
-AUDIO_DIR = Path("audio/abkr")
-AUDIO_DIR.mkdir(parents=True, exist_ok=True)
+# تعريف جميع القراء مع روابطهم
+READERS = {
+    "h_dukhain": "https://server16.mp3quran.net/download/h_dukhain/Rewayat-Hafs-A-n-Assem/{num}.mp3",
+    "hazza": "https://server11.mp3quran.net/download/hazza/{num}.mp3", 
+    "husr": "https://server13.mp3quran.net/download/husr/{num}.mp3",
+    "frs_a": "https://server8.mp3quran.net/download/frs_a/{num}.mp3",
+    "sds": "https://server11.mp3quran.net/download/sds/{num}.mp3",
+    "basit": "https://server7.mp3quran.net/download/basit/{num}.mp3",
+    "s_gmd": "https://server7.mp3quran.net/download/s_gmd/{num}.mp3",
+    "jleel": "https://server10.mp3quran.net/download/jleel/{num}.mp3",
+    "ajm": "https://server10.mp3quran.net/download/ajm/{num}.mp3"
+}
+
+TOTAL_SURAH = 114
+BASE_AUDIO_DIR = Path("audio")
 
 changed = False
 
@@ -56,18 +67,32 @@ def setup_git_lfs():
     except Exception as e:
         print(f"[!] Git LFS setup failed: {e}")
 
+def download_all_readers():
+    """تحميل جميع السور لجميع القراء"""
+    global changed
+    
+    for reader_name, url_template in READERS.items():
+        reader_dir = BASE_AUDIO_DIR / reader_name
+        reader_dir.mkdir(parents=True, exist_ok=True)
+        
+        print(f"\n{'='*50}")
+        print(f"تحميل القرآن الكريم للقارئ: {reader_name}")
+        print(f"{'='*50}")
+        
+        for surah_num in range(1, TOTAL_SURAH + 1):
+            num = f"{surah_num:03d}"
+            audio_url = url_template.format(num=num)
+            audio_path = reader_dir / f"{num}.mp3"
+
+            print(f"\n=== سورة {surah_num:03d} - {reader_name} ===")
+            if download_file(audio_url, audio_path): 
+                changed = True
+
 # إعداد Git LFS أولاً
 setup_git_lfs()
 
-# تنزيل الصوت لكل سورة
-for i in range(1, TOTAL + 1):
-    num = f"{i:03d}"
-    aud_url = AUDIO_URL_TMPL.format(num=num)
-    aud_path = AUDIO_DIR / f"{num}.mp3"
-
-    print(f"\n=== سورة {num} ===")
-    if download_file(aud_url, aud_path): 
-        changed = True
+# تحميل جميع القراء
+download_all_readers()
 
 if not changed:
     print("\nNo changes detected. Exiting without commit.")
@@ -84,11 +109,11 @@ try:
     # إعداد الريموت
     run(["git", "remote", "set-url", "origin", remote_url], check=True)
 
-    # إضافة الملفات باستخدام Git LFS
-    run(["git", "add", "audio/abkr/", ".gitattributes"], check=True)
+    # إضافة جميع المجلدات والملفات
+    run(["git", "add", "audio/", ".gitattributes"], check=True)
 
     # إنشاء الكوميت
-    msg = f"chore: sync Quran audio ({TOTAL} surahs)"
+    msg = f"chore: sync Quran audio for all readers ({len(READERS)} readers, {TOTAL_SURAH} surahs each)"
     commit_result = run(["git", "commit", "-m", msg])
     if commit_result.returncode != 0:
         print("\n[-] No new commit created (probably no changes). Exiting.")
@@ -99,7 +124,7 @@ try:
 
     # رفع الكوميت
     run(["git", "push", "origin", branch], check=True)
-    print("\n✅ Audio files committed and pushed successfully with Git LFS.")
+    print(f"\n✅ Audio files for {len(READERS)} readers committed and pushed successfully with Git LFS.")
 
 except CalledProcessError as e:
     print(f"\n[!] Git operation failed: {e}")
