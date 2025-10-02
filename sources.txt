@@ -1,3 +1,0 @@
-https://server6.mp3quran.net/abkr/001.mp3
-https://github.com/The-Quran-Project/Quran-Audio-Chapters/raw/refs/heads/main/Data/1/1.mp3
-https://raw.githubusercontent.com/quran/audio.quran.com/refs/heads/master/static/images/titles/001.svg
