@@ -9,18 +9,21 @@ AUDIO_URL_TMPL = "https://server6.mp3quran.net/abkr/{num}.mp3"
 AUDIO_DIR = Path("audio")
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
+changed = False
+
 def download_file(url: str, path: Path) -> bool:
-    """تحميل الملف وحفظه، يرجع True إذا تم التحميل بنجاح."""
+    """تحميل الملف وحفظه، يرجع True لو الملف اتغير أو اتضاف جديد."""
     try:
         r = requests.get(url, timeout=60)
         r.raise_for_status()
         content = r.content
-        
-        # كتابة الملف دائماً (استبدال الملفات التالفة)
-        path.write_bytes(content)
-        print(f"[+] {path} downloaded ({len(content)} bytes)")
-        return True
-        
+        if not path.exists() or path.read_bytes() != content:
+            path.write_bytes(content)
+            print(f"[+] {path} updated ({len(content)} bytes)")
+            return True
+        else:
+            print(f"[-] {path} unchanged")
+            return False
     except Exception as e:
         print(f"[!] Failed {url} → {e}")
         return False
@@ -38,60 +41,37 @@ def setup_git_lfs():
         if gitattributes.exists():
             content = gitattributes.read_text()
             if "*.mp3" not in content:
+                # إضافة pattern لملفات MP3
                 with open(gitattributes, "a") as f:
                     f.write(f"\n{lfs_pattern}\n")
         else:
+            # إنشاء ملف .gitattributes جديد
             gitattributes.write_text(lfs_pattern)
         
+        # إضافة .gitattributes إلى Git
         run(["git", "add", ".gitattributes"], check=True)
+        
         print("[+] Git LFS setup completed")
         
     except Exception as e:
         print(f"[!] Git LFS setup failed: {e}")
 
-def clean_audio_directory():
-    """تنظيف مجلد audio من الملفات التالفة"""
-    print("🧹 تنظيف الملفات الصوتية التالفة...")
-    
-    # حذف جميع ملفات MP3 التالفة
-    for mp3_file in AUDIO_DIR.glob("*.mp3"):
-        try:
-            mp3_file.unlink()
-            print(f"🗑️  تم حذف: {mp3_file.name}")
-        except Exception as e:
-            print(f"[!] فشل في حذف {mp3_file.name}: {e}")
-    
-    print("✅ تم تنظيف المجلد")
-
-# تنظيف الملفات التالفة أولاً
-clean_audio_directory()
-
-# إعداد Git LFS
+# إعداد Git LFS أولاً
 setup_git_lfs()
 
-success_count = 0
-failed_count = 0
-
-# تنزيل جميع السور من جديد
+# تنزيل الصوت لكل سورة
 for i in range(1, TOTAL + 1):
     num = f"{i:03d}"
     aud_url = AUDIO_URL_TMPL.format(num=num)
     aud_path = AUDIO_DIR / f"{num}.mp3"
 
     print(f"\n=== سورة {num} ===")
-    if download_file(aud_url, aud_path):
-        success_count += 1
-    else:
-        failed_count += 1
+    if download_file(aud_url, aud_path): 
+        changed = True
 
-print(f"\n{'='*50}")
-print(f"✅ التحميل الناجح: {success_count} سورة")
-print(f"❌ الفاشل: {failed_count} سورة")
-print(f"📊 الإجمالي: {TOTAL} سورة")
-
-if success_count == 0:
-    print("\n❌ لم يتم تحميل أي ملفات. الخروج بدون commit.")
-    exit(1)
+if not changed:
+    print("\nNo changes detected. Exiting without commit.")
+    exit(0)
 
 # --- git add + commit + push ---
 repo = os.getenv("GITHUB_REPOSITORY")
@@ -101,19 +81,25 @@ branch = os.getenv("GITHUB_REF_NAME", "main").replace("refs/heads/", "")
 remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
 
 try:
+    # إعداد الريموت
     run(["git", "remote", "set-url", "origin", remote_url], check=True)
+
+    # إضافة الملفات باستخدام Git LFS
     run(["git", "add", "audio/", ".gitattributes"], check=True)
 
-    msg = f"chore: re-download all Quran audio ({success_count}/{TOTAL} surahs)"
+    # إنشاء الكوميت
+    msg = f"chore: sync Quran audio ({TOTAL} surahs)"
     commit_result = run(["git", "commit", "-m", msg])
-    
     if commit_result.returncode != 0:
-        print("\n[-] No new commit created. Exiting.")
+        print("\n[-] No new commit created (probably no changes). Exiting.")
         exit(0)
 
+    # سحب آخر تغييرات من الريموت قبل البوش
     run(["git", "pull", "--rebase", "origin", branch], check=True)
+
+    # رفع الكوميت
     run(["git", "push", "origin", branch], check=True)
-    print(f"\n✅ تم رفع {success_count} ملف صوتي بنجاح باستخدام Git LFS.")
+    print("\n✅ Audio files committed and pushed successfully with Git LFS.")
 
 except CalledProcessError as e:
     print(f"\n[!] Git operation failed: {e}")
