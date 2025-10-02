@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-import os
 import requests
 from pathlib import Path
 from subprocess import run, CalledProcessError
@@ -17,7 +16,7 @@ AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 changed = False
 
 def download_file(url: str, path: Path) -> bool:
-    """ينزل الملف ويعيد True لو الملف اتغير أو اتضاف جديد."""
+    """تحميل الملف وحفظه، يرجع True لو الملف اتغير أو اتضاف جديد."""
     try:
         r = requests.get(url, timeout=60)
         r.raise_for_status()
@@ -33,6 +32,7 @@ def download_file(url: str, path: Path) -> bool:
         print(f"[!] Failed {url} → {e}")
         return False
 
+# تنزيل الصور والصوت لكل سورة
 for i in range(1, TOTAL + 1):
     num = f"{i:03d}"
     img_url = IMAGE_URL_TMPL.format(num=num)
@@ -45,7 +45,7 @@ for i in range(1, TOTAL + 1):
     if download_file(aud_url, aud_path): changed = True
 
 if not changed:
-    print("\nNo changes detected. Exiting.")
+    print("\nNo changes detected. Exiting without commit.")
     exit(0)
 
 # git add + commit + push
@@ -54,7 +54,7 @@ try:
     msg = f"chore: sync Quran assets ({TOTAL} surahs)"
     run(["git", "commit", "-m", msg], check=False)
     run(["git", "push", "origin", "HEAD"], check=True)
-    print("\nChanges committed and pushed successfully.")
+    print("\n✅ Changes committed and pushed successfully.")
 except CalledProcessError as e:
     print(f"\n[!] Git operation failed: {e}")
     exit(2)
