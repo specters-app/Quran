@@ -6,15 +6,12 @@ from subprocess import run, CalledProcessError
 
 # تعريف جميع القراء مع روابطهم
 READERS = {
-    "h_dukhain": "https://server16.mp3quran.net/download/h_dukhain/Rewayat-Hafs-A-n-Assem/{num}.mp3",
     "hazza": "https://server11.mp3quran.net/download/hazza/{num}.mp3", 
     "husr": "https://server13.mp3quran.net/download/husr/{num}.mp3",
-    "frs_a": "https://server8.mp3quran.net/download/frs_a/{num}.mp3",
     "sds": "https://server11.mp3quran.net/download/sds/{num}.mp3",
     "basit": "https://server7.mp3quran.net/download/basit/{num}.mp3",
     "s_gmd": "https://server7.mp3quran.net/download/s_gmd/{num}.mp3",
-    "jleel": "https://server10.mp3quran.net/download/jleel/{num}.mp3",
-    "ajm": "https://server10.mp3quran.net/download/ajm/{num}.mp3"
+    "jleel": "https://server10.mp3quran.net/download/jleel/{num}.mp3"
 }
 
 TOTAL_SURAH = 114
