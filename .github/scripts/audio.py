@@ -4,20 +4,17 @@ import requests
 from pathlib import Path
 from subprocess import run, CalledProcessError
 
+# كل القراء / السيرفرات
 READERS = {
     "hazza": "https://server11.mp3quran.net/download/hazza/{num}.mp3", 
-    "husr": "https://server13.mp3quran.net/download/husr/{num}.mp3",
-    "sds": "https://server11.mp3quran.net/download/sds/{num}.mp3",
+    "husr":  "https://server13.mp3quran.net/download/husr/{num}.mp3",
+    "sds":   "https://server11.mp3quran.net/download/sds/{num}.mp3",
     "basit": "https://server7.mp3quran.net/download/basit/{num}.mp3",
     "s_gmd": "https://server7.mp3quran.net/download/s_gmd/{num}.mp3",
     "jleel": "https://server10.mp3quran.net/download/jleel/{num}.mp3"
 }
 
 TOTAL = 114
-AUDIO_URL_TMPL = "https://server7.mp3quran.net/download/basit/{num}.mp3"
-AUDIO_DIR = Path("audio/basit")
-AUDIO_DIR.mkdir(parents=True, exist_ok=True)
-
 changed = False
 
 def download_file(url: str, path: Path) -> bool:
@@ -27,6 +24,7 @@ def download_file(url: str, path: Path) -> bool:
         r.raise_for_status()
         content = r.content
         if not path.exists() or path.read_bytes() != content:
+            path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(content)
             print(f"[+] {path} updated ({len(content)} bytes)")
             return True
@@ -40,10 +38,7 @@ def download_file(url: str, path: Path) -> bool:
 def setup_git_lfs():
     """إعداد Git LFS لتتبع ملفات MP3"""
     try:
-        # تأكد من تثبيت Git LFS
         run(["git", "lfs", "install"], check=True)
-        
-        # تأكد من أن .gitattributes مضبوط لملفات MP3
         gitattributes = Path(".gitattributes")
         lfs_pattern = "*.mp3 filter=lfs diff=lfs merge=lfs -text"
         
@@ -57,22 +52,25 @@ def setup_git_lfs():
         
         run(["git", "add", ".gitattributes"], check=True)
         print("[+] Git LFS setup completed")
-        
     except Exception as e:
         print(f"[!] Git LFS setup failed: {e}")
 
 # --- MAIN ---
 setup_git_lfs()
 
-# تنزيل الصوت لكل سورة
-for i in range(1, TOTAL + 1):
-    num = f"{i:03d}"
-    aud_url = AUDIO_URL_TMPL.format(num=num)
-    aud_path = AUDIO_DIR / f"{num}.mp3"
+# تنزيل الصوت لكل سورة من كل سيرفر
+for reader, url_tmpl in READERS.items():
+    print(f"\n=== 📥 Reader: {reader} ===")
+    reader_dir = Path("audio") / reader
+    
+    for i in range(1, TOTAL + 1):
+        num = f"{i:03d}"
+        aud_url = url_tmpl.format(num=num)
+        aud_path = reader_dir / f"{num}.mp3"
 
-    print(f"\n=== سورة {num} ===")
-    if download_file(aud_url, aud_path): 
-        changed = True
+        print(f"--- سورة {num} ---")
+        if download_file(aud_url, aud_path):
+            changed = True
 
 if not changed:
     print("\nNo changes detected. Exiting without commit.")
@@ -86,20 +84,18 @@ branch = os.getenv("GITHUB_REF_NAME", "main").replace("refs/heads/", "")
 remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
 
 try:
-    # إعداد الريموت
     run(["git", "remote", "set-url", "origin", remote_url], check=True)
 
-    # إضافة كل الملفات المتغيرة والجديدة والمحذوفة
+    # إضافة كل الملفات المتغيرة والجديدة
     run(["git", "add", "-A"], check=True)
 
-    # إنشاء الكوميت
-    msg = f"chore: sync Quran audio ({TOTAL} surahs)"
+    msg = f"chore: sync Quran audio ({TOTAL} surahs × {len(READERS)} readers)"
     commit_result = run(["git", "commit", "-m", msg])
     if commit_result.returncode != 0:
         print("\n[-] No new commit created (probably no changes). Exiting.")
         exit(0)
 
-    # تحديث الريبو قبل البوش (rebase)
+    # تحديث الريبو قبل البوش
     run(["git", "pull", "--rebase", "origin", branch], check=True)
 
     # رفع الكوميت
