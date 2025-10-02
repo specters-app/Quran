@@ -1,12 +1,12 @@
 name: Quran Sync (Python)
 
 on:
-  workflow_dispatch:   
+  workflow_dispatch:
   schedule:
-    - cron: "0 2 * * *"  
+    - cron: "0 2 * * *"
 
 permissions:
-  contents: write   
+  contents: write
 
 jobs:
   sync-quran:
@@ -16,7 +16,7 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  
+          fetch-depth: 0
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -25,6 +25,13 @@ jobs:
 
       - name: Install dependencies
         run: pip install requests
+
+      - name: Setup Git LFS
+        run: |
+          git lfs install
+          git lfs track "*.mp3"
+          git add .gitattributes
+          git commit -m "Track mp3 files with Git LFS" || echo "No changes to commit"
 
       - name: Run Python sync script
         run: |
