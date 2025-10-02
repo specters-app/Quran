@@ -10,7 +10,6 @@ READERS = {
     "husr":  "https://server13.mp3quran.net/download/husr/{num}.mp3",
     "sds":   "https://server11.mp3quran.net/download/sds/{num}.mp3",
     "basit": "https://server7.mp3quran.net/download/basit/{num}.mp3",
-    "s_gmd": "https://server7.mp3quran.net/download/s_gmd/{num}.mp3",
     "jleel": "https://server10.mp3quran.net/download/jleel/{num}.mp3"
 }
 
