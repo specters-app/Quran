@@ -50,22 +50,18 @@ def setup_git_lfs():
         if gitattributes.exists():
             content = gitattributes.read_text()
             if "*.mp3" not in content:
-                # إضافة pattern لملفات MP3
                 with open(gitattributes, "a") as f:
                     f.write(f"\n{lfs_pattern}\n")
         else:
-            # إنشاء ملف .gitattributes جديد
             gitattributes.write_text(lfs_pattern)
         
-        # إضافة .gitattributes إلى Git
         run(["git", "add", ".gitattributes"], check=True)
-        
         print("[+] Git LFS setup completed")
         
     except Exception as e:
         print(f"[!] Git LFS setup failed: {e}")
 
-# إعداد Git LFS أولاً
+# --- MAIN ---
 setup_git_lfs()
 
 # تنزيل الصوت لكل سورة
@@ -93,8 +89,8 @@ try:
     # إعداد الريموت
     run(["git", "remote", "set-url", "origin", remote_url], check=True)
 
-    # إضافة الملفات باستخدام Git LFS
-    run(["git", "add", "audio/basit/", ".gitattributes"], check=True)
+    # إضافة كل الملفات المتغيرة والجديدة والمحذوفة
+    run(["git", "add", "-A"], check=True)
 
     # إنشاء الكوميت
     msg = f"chore: sync Quran audio ({TOTAL} surahs)"
@@ -103,7 +99,7 @@ try:
         print("\n[-] No new commit created (probably no changes). Exiting.")
         exit(0)
 
-    # سحب آخر تغييرات من الريموت قبل البوش
+    # تحديث الريبو قبل البوش (rebase)
     run(["git", "pull", "--rebase", "origin", branch], check=True)
 
     # رفع الكوميت
