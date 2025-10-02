@@ -5,8 +5,8 @@ from pathlib import Path
 from subprocess import run, CalledProcessError
 
 TOTAL = 114
-AUDIO_URL_TMPL = "https://server6.mp3quran.net/abkr/{num}.mp3"
-AUDIO_DIR = Path("audio")
+AUDIO_URL_TMPL = "https://server6.mp3quran.net/download/abkr/{num}.mp3"
+AUDIO_DIR = Path("audio/abkr")
 AUDIO_DIR.mkdir(parents=True, exist_ok=True)
 
 changed = False
@@ -85,7 +85,7 @@ try:
     run(["git", "remote", "set-url", "origin", remote_url], check=True)
 
     # إضافة الملفات باستخدام Git LFS
-    run(["git", "add", "audio/", ".gitattributes"], check=True)
+    run(["git", "add", "audio/abkr/", ".gitattributes"], check=True)
 
     # إنشاء الكوميت
     msg = f"chore: sync Quran audio ({TOTAL} surahs)"
