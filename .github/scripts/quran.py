@@ -52,17 +52,31 @@ if not changed:
 # --- git add + commit + push مع remote معدل باستخدام GITHUB_TOKEN ---
 repo = os.getenv("GITHUB_REPOSITORY")   # مثال: user/repo
 token = os.getenv("GITHUB_TOKEN")
-branch = os.getenv("GITHUB_REF_NAME", "main")
+branch = os.getenv("GITHUB_REF_NAME", "main").replace("refs/heads/", "")
 
 remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
 
 try:
+    # إعداد الريموت
     run(["git", "remote", "set-url", "origin", remote_url], check=True)
+
+    # إضافة الملفات
     run(["git", "add", "images", "audio"], check=True)
+
+    # إنشاء الكوميت (لو في تغييرات فقط)
     msg = f"chore: sync Quran assets ({TOTAL} surahs)"
-    run(["git", "commit", "-m", msg], check=False)
+    commit_result = run(["git", "commit", "-m", msg])
+    if commit_result.returncode != 0:
+        print("\n[-] No new commit created (probably no changes). Exiting.")
+        exit(0)
+
+    # سحب آخر تغييرات من الريموت قبل البوش عشان نتجنب التضارب
+    run(["git", "pull", "--rebase", "origin", branch], check=True)
+
+    # رفع الكوميت
     run(["git", "push", "origin", branch], check=True)
     print("\n✅ Changes committed and pushed successfully.")
+
 except CalledProcessError as e:
     print(f"\n[!] Git operation failed: {e}")
     exit(2)
