@@ -1,0 +1,33 @@
+name: Quran Sync (Python)
+
+on:
+  workflow_dispatch:   # تشغيل يدوي
+  schedule:
+    - cron: "0 2 * * *"   # كل يوم 2 صباحاً UTC (اختياري)
+
+permissions:
+  contents: write   # ضروري عشان نقدر نعمل commit & push
+
+jobs:
+  sync-quran:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install requests
+
+      - name: Run Python sync script
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          python3 .github/scripts/quran.py
