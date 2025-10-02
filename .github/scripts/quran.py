@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import os
 import requests
 from pathlib import Path
 from subprocess import run, CalledProcessError
@@ -48,12 +49,19 @@ if not changed:
     print("\nNo changes detected. Exiting without commit.")
     exit(0)
 
-# git add + commit + push
+# --- git add + commit + push مع remote معدل باستخدام GITHUB_TOKEN ---
+repo = os.getenv("GITHUB_REPOSITORY")   # مثال: user/repo
+token = os.getenv("GITHUB_TOKEN")
+branch = os.getenv("GITHUB_REF_NAME", "main")
+
+remote_url = f"https://x-access-token:{token}@github.com/{repo}.git"
+
 try:
+    run(["git", "remote", "set-url", "origin", remote_url], check=True)
     run(["git", "add", "images", "audio"], check=True)
     msg = f"chore: sync Quran assets ({TOTAL} surahs)"
     run(["git", "commit", "-m", msg], check=False)
-    run(["git", "push", "origin", "HEAD"], check=True)
+    run(["git", "push", "origin", branch], check=True)
     print("\n✅ Changes committed and pushed successfully.")
 except CalledProcessError as e:
     print(f"\n[!] Git operation failed: {e}")
